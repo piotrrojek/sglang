@@ -562,6 +562,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     matplotlib \
     tabulate \
     termplotlib \
+    distro \
     "runai-model-streamer[s3,gcs,azure]>=0.15.7"
 
 # Optional ai-dynamo nightly for Dynamo + SGLang integration testing. Gated by
