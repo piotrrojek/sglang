@@ -452,10 +452,18 @@ class TpModelWorker(BaseTpWorker):
         self.model_runner.hisparse_coordinator = coordinator
 
     def get_worker_info(self):
-        max_req_len = min(
-            self.model_config.context_len - 1,
-            self.model_runner.max_token_pool_size - 1,
-        )
+        # Cap input length by the L1 KV pool, unless hierarchical cache (L1+L2)
+        # extends capacity beyond L1 alone. With HiCache on, L2 absorbs overflow,
+        # so the configured context_len is the real admission bound. We never
+        # widen past context_len: inputs above the configured context are still
+        # rejected by validate_input_length(). Hot-path safe: runs once at init.
+        if self.server_args.enable_hierarchical_cache:
+            max_req_len = self.model_config.context_len - 1
+        else:
+            max_req_len = min(
+                self.model_config.context_len - 1,
+                self.model_runner.max_token_pool_size - 1,
+            )
         return (
             self.model_runner.max_total_num_tokens,
             self.server_args.max_prefill_tokens,
